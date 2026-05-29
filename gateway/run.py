@@ -755,6 +755,11 @@ from dotenv import load_dotenv  # noqa: F401  # backward-compat for tests that m
 from hermes_cli.env_loader import load_hermes_dotenv
 _env_path = _hermes_home / '.env'
 load_hermes_dotenv(hermes_home=_hermes_home, project_env=Path(__file__).resolve().parents[1] / '.env')
+try:
+    from supabase_state import load_config_from_supabase as _sb_load_cfg
+    _sb_load_cfg()
+except Exception:
+    pass
 
 
 def _reload_runtime_env_preserving_config_authority() -> None:
@@ -18463,6 +18468,17 @@ def _run_planned_stop_watcher(
         stop_event.wait(poll_interval)
 
 
+def _render_keepalive_loop(url: str, stop_event: threading.Event, interval: int = 300) -> None:
+    """Render 슬립 방지 — interval(기본 5분)마다 URL에 GET 요청."""
+    import httpx
+    while not stop_event.wait(interval):
+        try:
+            httpx.get(url, timeout=15, follow_redirects=True)
+            logger.debug("Render keep-alive ping 성공: %s", url)
+        except Exception as e:
+            logger.debug("Render keep-alive ping 실패: %s", e)
+
+
 def _start_cron_ticker(stop_event: threading.Event, adapters=None, loop=None, interval: int = 60):
     """
     Background thread that ticks the cron scheduler at a regular interval.
@@ -18953,7 +18969,19 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
         name="cron-ticker",
     )
     cron_thread.start()
-    
+
+    # Render keep-alive: RENDER_URL 환경변수가 있으면 5분마다 ping
+    render_url = os.environ.get("RENDER_URL", "").strip()
+    if render_url:
+        _keepalive_stop = threading.Event()
+        threading.Thread(
+            target=_render_keepalive_loop,
+            args=(render_url, _keepalive_stop),
+            daemon=True,
+            name="render-keepalive",
+        ).start()
+        logger.info("Render keep-alive 시작: %s (5분 간격)", render_url)
+
     # Wait for shutdown
     await runner.wait_for_shutdown()
 

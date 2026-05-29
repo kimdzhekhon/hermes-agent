@@ -178,6 +178,11 @@ from utils import base_url_host_matches
 _hermes_home = get_hermes_home()
 _project_env = Path(__file__).parent / '.env'
 load_hermes_dotenv(hermes_home=_hermes_home, project_env=_project_env)
+try:
+    from supabase_state import load_config_from_supabase as _sb_load_cfg
+    _sb_load_cfg()
+except Exception:
+    pass
 
 
 _REASONING_TAGS = (
