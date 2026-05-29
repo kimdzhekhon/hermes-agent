@@ -750,6 +750,8 @@ class SessionDB:
         parent_session_id: str = None,
     ) -> None:
         """Shared INSERT OR IGNORE for session rows."""
+        _started_at = time.time()
+
         def _do(conn):
             conn.execute(
                 """INSERT OR IGNORE INTO sessions (id, source, user_id, model, model_config,
@@ -763,7 +765,7 @@ class SessionDB:
                     json.dumps(model_config) if model_config else None,
                     system_prompt,
                     parent_session_id,
-                    time.time(),
+                    _started_at,
                 ),
             )
         self._execute_write(_do)
@@ -771,7 +773,7 @@ class SessionDB:
             from supabase_state import sync_session as _sb_sync
             _sb_sync(session_id, source, user_id=user_id, model=model,
                      model_config=model_config, system_prompt=system_prompt,
-                     parent_session_id=parent_session_id)
+                     parent_session_id=parent_session_id, started_at=_started_at)
         except Exception:
             pass
 
@@ -1236,7 +1238,7 @@ class SessionDB:
             )
             return cursor.rowcount
         rowcount = self._execute_write(_do)
-        if rowcount > 0 and title:
+        if rowcount > 0:
             try:
                 from supabase_state import update_session_title as _sb_title
                 _sb_title(session_id, title)
