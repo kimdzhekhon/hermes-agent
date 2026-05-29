@@ -203,6 +203,18 @@ s6-setuidgid hermes mkdir -p \
     "$HERMES_HOME/skins" \
     "$HERMES_HOME/plans" \
     "$HERMES_HOME/workspace" \
+    "$HERMES_HOME/home" \
+    2>/dev/null || \
+mkdir -p \
+    "$HERMES_HOME/cron" \
+    "$HERMES_HOME/sessions" \
+    "$HERMES_HOME/logs" \
+    "$HERMES_HOME/hooks" \
+    "$HERMES_HOME/memories" \
+    "$HERMES_HOME/skills" \
+    "$HERMES_HOME/skins" \
+    "$HERMES_HOME/plans" \
+    "$HERMES_HOME/workspace" \
     "$HERMES_HOME/home"
 
 # --- Install-method stamp (read by detect_install_method() in hermes status) ---
