@@ -688,7 +688,9 @@ class APIServerAdapter(BasePlatformAdapter):
     def __init__(self, config: PlatformConfig):
         super().__init__(config, Platform.API_SERVER)
         extra = config.extra or {}
-        self._host: str = extra.get("host", os.getenv("API_SERVER_HOST", DEFAULT_HOST))
+        # PORT가 설정된 환경(Render 등 PaaS)에서는 0.0.0.0으로 바인딩
+        _default_host = "0.0.0.0" if os.getenv("PORT") else DEFAULT_HOST
+        self._host: str = extra.get("host", os.getenv("API_SERVER_HOST", _default_host))
         raw_port = extra.get("port")
         if raw_port is None:
             # Render(및 기타 PaaS)는 $PORT를 주입함 — API_SERVER_PORT보다 우선
