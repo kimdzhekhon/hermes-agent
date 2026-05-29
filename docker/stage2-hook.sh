@@ -218,7 +218,8 @@ seed_one() {
     dest=$1
     src=$2
     if [ ! -f "$HERMES_HOME/$dest" ] && [ -f "$INSTALL_DIR/$src" ]; then
-        s6-setuidgid hermes cp "$INSTALL_DIR/$src" "$HERMES_HOME/$dest"
+        s6-setuidgid hermes cp "$INSTALL_DIR/$src" "$HERMES_HOME/$dest" \
+            || echo "[stage2] Warning: failed to seed $dest — continuing"
     fi
 }
 seed_one ".env" ".env.example"
@@ -290,7 +291,8 @@ if [ -z "${AGENT_BROWSER_EXECUTABLE_PATH:-}" ] && \
         # Write to s6's container_environment so with-contenv picks it
         # up for all supervised services (main-hermes, dashboard, etc.).
         # Idempotent: each boot overwrites with the current path.
-        printf '%s' "$browser_bin" > /run/s6/container_environment/AGENT_BROWSER_EXECUTABLE_PATH
+        printf '%s' "$browser_bin" > /run/s6/container_environment/AGENT_BROWSER_EXECUTABLE_PATH \
+            || echo "[stage2] Warning: failed to export AGENT_BROWSER_EXECUTABLE_PATH — continuing"
     else
         echo "[stage2] Warning: no Chromium binary under $PLAYWRIGHT_BROWSERS_PATH; browser tool may fail"
     fi
