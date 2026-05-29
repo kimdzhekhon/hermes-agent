@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: hermes-agent-private
+    runtime: docker
+    region: singapore
+    plan: free
+    healthCheckPath: /health
+    startCommand: gateway
+    envVars:
+      - key: API_SERVER_ENABLED
+        value: "1"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false

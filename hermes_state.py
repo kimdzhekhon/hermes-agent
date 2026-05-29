@@ -750,6 +750,8 @@ class SessionDB:
         parent_session_id: str = None,
     ) -> None:
         """Shared INSERT OR IGNORE for session rows."""
+        _started_at = time.time()
+
         def _do(conn):
             conn.execute(
                 """INSERT OR IGNORE INTO sessions (id, source, user_id, model, model_config,
@@ -763,10 +765,17 @@ class SessionDB:
                     json.dumps(model_config) if model_config else None,
                     system_prompt,
                     parent_session_id,
-                    time.time(),
+                    _started_at,
                 ),
             )
         self._execute_write(_do)
+        try:
+            from supabase_state import sync_session as _sb_sync
+            _sb_sync(session_id, source, user_id=user_id, model=model,
+                     model_config=model_config, system_prompt=system_prompt,
+                     parent_session_id=parent_session_id, started_at=_started_at)
+        except Exception:
+            pass
 
     def create_session(self, session_id: str, source: str, **kwargs) -> str:
         """Create a new session record. Returns the session_id."""
@@ -789,6 +798,11 @@ class SessionDB:
                 (time.time(), end_reason, session_id),
             )
         self._execute_write(_do)
+        try:
+            from supabase_state import update_session_end as _sb_end
+            _sb_end(session_id, time.time(), end_reason)
+        except Exception:
+            pass
 
     def reopen_session(self, session_id: str) -> None:
         """Clear ended_at/end_reason so a session can be resumed."""
@@ -1224,6 +1238,12 @@ class SessionDB:
             )
             return cursor.rowcount
         rowcount = self._execute_write(_do)
+        if rowcount > 0:
+            try:
+                from supabase_state import update_session_title as _sb_title
+                _sb_title(session_id, title)
+            except Exception:
+                pass
         return rowcount > 0
 
     def get_session_title(self, session_id: str) -> Optional[str]:
@@ -1710,7 +1730,15 @@ class SessionDB:
                 )
             return msg_id
 
-        return self._execute_write(_do)
+        result = self._execute_write(_do)
+        try:
+            from supabase_state import sync_message as _sb_msg
+            _sb_msg(session_id, role, content=content, tool_name=tool_name,
+                    tool_calls=tool_calls, tool_call_id=tool_call_id,
+                    token_count=token_count, finish_reason=finish_reason)
+        except Exception:
+            pass
+        return result
 
     def replace_messages(self, session_id: str, messages: List[Dict[str, Any]]) -> None:
         """Atomically replace every message for a session.

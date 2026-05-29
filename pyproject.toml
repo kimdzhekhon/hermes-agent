@@ -64,6 +64,8 @@ dependencies = [
   # (which is a silent killer on Windows — see CONTRIBUTING.md) and
   # `os.killpg` (which doesn't exist on Windows).
   "psutil==7.2.2",
+  # Supabase: 세션/메시지 영속 저장소 (SUPABASE_URL, SUPABASE_KEY 설정 시 활성화)
+  "supabase==2.30.0",
 ]
 
 [project.optional-dependencies]
