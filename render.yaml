@@ -5,6 +5,7 @@ services:
     region: singapore
     plan: free
     healthCheckPath: /health
+    dockerCommand: gateway
     envVars:
       - key: API_SERVER_ENABLED
         value: "1"
