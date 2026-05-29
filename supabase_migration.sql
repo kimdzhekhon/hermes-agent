@@ -13,6 +13,16 @@ create table if not exists hermes_sessions (
   ended_at float8,
   end_reason text,
   title text,
+  message_count int4 default 0,
+  tool_call_count int4 default 0,
+  input_tokens int4 default 0,
+  output_tokens int4 default 0,
+  cache_read_tokens int4 default 0,
+  cache_write_tokens int4 default 0,
+  reasoning_tokens int4 default 0,
+  api_call_count int4 default 0,
+  estimated_cost_usd float8,
+  actual_cost_usd float8,
   created_at timestamptz default now()
 );
 

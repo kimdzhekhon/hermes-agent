@@ -189,6 +189,7 @@ def _do_update_session_title(session_id, title):
     if not client:
         return
     try:
+        # title=None이면 NULL로 업데이트 (SQLite와 일치)
         client.table("hermes_sessions").update({"title": title}).eq("id", session_id).execute()
     except Exception as e:
         logger.debug("Supabase session title 업데이트 실패 (%s): %s", session_id, e)
