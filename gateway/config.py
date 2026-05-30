@@ -1249,6 +1249,17 @@ def _apply_env_overrides(config: GatewayConfig) -> None:
             config.platforms[Platform.DISCORD] = PlatformConfig()
         config.platforms[Platform.DISCORD].enabled = True
         config.platforms[Platform.DISCORD].token = discord_token
+    # 진단: _apply_env_overrides 시점의 Discord 토큰 상태 (원인 규명용, 추후 제거)
+    try:
+        if os.environ.get("PORT") or os.environ.get("HERMES_ENV_DIAG"):
+            print(
+                f"[envdiag] _apply_env_overrides: DISCORD_BOT_TOKEN "
+                f"present={discord_token is not None} len={len(discord_token or '')} "
+                f"-> discord_enabled={bool(discord_token)}",
+                flush=True,
+            )
+    except Exception:
+        pass
     
     discord_home = os.getenv("DISCORD_HOME_CHANNEL")
     if discord_home and Platform.DISCORD in config.platforms:
