@@ -315,20 +315,6 @@ for _pk, _pv in _paas_env_snapshot.items():
     if _pv and not os.environ.get(_pk):
         os.environ[_pk] = _pv
 
-# 진단 로그: PaaS 환경변수가 hermes 프로세스까지 도달하는지 확인.
-# PORT(Render/PaaS 표식) 또는 HERMES_ENV_DIAG가 있을 때만 출력.
-# 값은 출력하지 않고 존재여부+길이만 — 보안. (원인 규명 후 제거 예정)
-try:
-    if os.environ.get("PORT") or os.environ.get("HERMES_ENV_DIAG"):
-        for _dn in ("DISCORD_BOT_TOKEN", "API_SERVER_ENABLED", "SUPABASE_URL"):
-            _dv = os.environ.get(_dn)
-            print(
-                f"[envdiag] {_dn}: present={_dv is not None} len={len(_dv or '')}",
-                flush=True,
-            )
-except Exception:
-    pass
-
 # Bridge security.redact_secrets from config.yaml → HERMES_REDACT_SECRETS env
 # var BEFORE hermes_logging imports agent.redact (which snapshots the flag at
 # module-import time). Without this, config.yaml's toggle is ignored because

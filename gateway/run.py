@@ -761,23 +761,9 @@ load_hermes_dotenv(hermes_home=_hermes_home, project_env=Path(__file__).resolve(
 for _k, _v in _pre_dotenv_env.items():
     if _v and not os.environ.get(_k):
         os.environ[_k] = _v
-_sb_injected = 0
 try:
     from supabase_state import load_config_from_supabase as _sb_load_cfg
-    _sb_injected = _sb_load_cfg()
-except Exception as _sb_exc:
-    _sb_injected = -1
-    print(f"[envdiag] supabase load 예외: {_sb_exc}", flush=True)
-
-# 진단: Supabase 로드 후 Discord 토큰 최종 상태 (원인 규명용, 추후 제거)
-try:
-    if os.environ.get("PORT") or os.environ.get("HERMES_ENV_DIAG"):
-        _dt = os.environ.get("DISCORD_BOT_TOKEN")
-        print(
-            f"[envdiag] gateway: supabase_injected={_sb_injected} "
-            f"DISCORD_BOT_TOKEN present={_dt is not None} len={len(_dt or '')}",
-            flush=True,
-        )
+    _sb_load_cfg()
 except Exception:
     pass
 
