@@ -153,6 +153,26 @@ class MemoryStore:
         self.memory_entries = self._read_file(mem_dir / "MEMORY.md")
         self.user_entries = self._read_file(mem_dir / "USER.md")
 
+        # 로컬 파일이 비어있으면 (Render 재배포 등) Supabase에서 복원
+        if not self.memory_entries and not self.user_entries:
+            try:
+                from supabase_state import load_memories as _load_mem
+                rows = _load_mem()
+                for row in rows:
+                    key, content = row.get("key", ""), row.get("content", "")
+                    if not content:
+                        continue
+                    if key == "USER.md":
+                        path = mem_dir / "USER.md"
+                        path.write_text(content, encoding="utf-8")
+                        self.user_entries = self._read_file(path)
+                    elif key == "MEMORY.md":
+                        path = mem_dir / "MEMORY.md"
+                        path.write_text(content, encoding="utf-8")
+                        self.memory_entries = self._read_file(path)
+            except Exception:
+                pass
+
         # Deduplicate entries (preserves order, keeps first occurrence)
         self.memory_entries = list(dict.fromkeys(self.memory_entries))
         self.user_entries = list(dict.fromkeys(self.user_entries))
@@ -270,7 +290,20 @@ class MemoryStore:
     def save_to_disk(self, target: str):
         """Persist entries to the appropriate file. Called after every mutation."""
         get_memory_dir().mkdir(parents=True, exist_ok=True)
-        self._write_file(self._path_for(target), self._entries_for(target))
+        entries = self._entries_for(target)
+        self._write_file(self._path_for(target), entries)
+        # Supabase에 동기화 (백그라운드 — 실패해도 로컬은 유지)
+        try:
+            from supabase_state import upsert_memory as _upsert
+            import threading
+            tier = "persona" if target == "user" else "long"
+            key = "USER.md" if target == "user" else "MEMORY.md"
+            content = ENTRY_DELIMITER.join(entries) if entries else ""
+            threading.Thread(
+                target=_upsert, args=(tier, key, content), daemon=True
+            ).start()
+        except Exception:
+            pass
 
     def _entries_for(self, target: str) -> List[str]:
         if target == "user":
