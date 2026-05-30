@@ -754,7 +754,13 @@ _hermes_home = get_hermes_home()
 from dotenv import load_dotenv  # noqa: F401  # backward-compat for tests that monkeypatch this symbol
 from hermes_cli.env_loader import load_hermes_dotenv
 _env_path = _hermes_home / '.env'
+# dotenv(override=True)가 Render 환경변수를 덮어쓸 수 있으므로, 로드 전에 저장
+_pre_dotenv_env = {k: v for k, v in os.environ.items() if v}
 load_hermes_dotenv(hermes_home=_hermes_home, project_env=Path(__file__).resolve().parents[1] / '.env')
+# dotenv가 비운 환경변수를 Render 원본값으로 복원
+for _k, _v in _pre_dotenv_env.items():
+    if _v and not os.environ.get(_k):
+        os.environ[_k] = _v
 try:
     from supabase_state import load_config_from_supabase as _sb_load_cfg
     _sb_load_cfg()

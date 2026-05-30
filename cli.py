@@ -177,7 +177,11 @@ from utils import base_url_host_matches
 
 _hermes_home = get_hermes_home()
 _project_env = Path(__file__).parent / '.env'
+_pre_dotenv_env = {k: v for k, v in os.environ.items() if v}
 load_hermes_dotenv(hermes_home=_hermes_home, project_env=_project_env)
+for _k, _v in _pre_dotenv_env.items():
+    if _v and not os.environ.get(_k):
+        os.environ[_k] = _v
 try:
     from supabase_state import load_config_from_supabase as _sb_load_cfg
     _sb_load_cfg()
