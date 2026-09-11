@@ -179,6 +179,66 @@ def load_config_from_supabase() -> int:
         return 0
 
 
+def load_memories(tier: Optional[str] = None) -> list:
+    """hermes_memories 테이블에서 기억 로드.
+
+    tier 지정 시 해당 tier만 반환, 없으면 전체 반환.
+    반환값: [{"key": ..., "tier": ..., "content": ...}, ...]
+    """
+    client = _get_client()
+    if not client:
+        return []
+    try:
+        query = client.table("hermes_memories").select("key,tier,content")
+        if tier:
+            query = query.eq("tier", tier)
+        resp = query.execute()
+        return resp.data or []
+    except Exception as e:
+        logger.debug("Supabase 메모리 로드 실패: %s", e)
+        return []
+
+
+def upsert_memory(tier: str, key: str, content: str) -> bool:
+    """메모리를 Supabase hermes_memories에 저장/업데이트 (동기).
+
+    tier: 'persona' | 'long'
+    key:  'MEMORY.md' | 'USER.md' | 사용자 정의 키
+    반환값: 성공 여부
+    """
+    client = _get_client()
+    if not client:
+        return False
+    try:
+        client.table("hermes_memories").upsert({
+            "key": key,
+            "tier": tier,
+            "content": content,
+            "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        }, on_conflict="key").execute()
+        return True
+    except Exception as e:
+        logger.debug("Supabase 메모리 upsert 실패 (%s): %s", key, e)
+        return False
+
+
+def set_session_memory_tier(session_id: str, tier: str) -> None:
+    """세션의 memory_tier를 변경 (백그라운드). tier: 'short' | 'long'"""
+    _run_in_background(_do_set_session_memory_tier, session_id, tier)
+
+
+def _do_set_session_memory_tier(session_id: str, tier: str):
+    client = _get_client()
+    if not client:
+        return
+    try:
+        client.table("hermes_sessions").update(
+            {"memory_tier": tier}
+        ).eq("id", session_id).execute()
+    except Exception as e:
+        logger.debug("Supabase session memory_tier 변경 실패 (%s): %s", session_id, e)
+
+
 def update_session_title(session_id: str, title: str) -> None:
     """세션 제목을 Supabase에 업데이트 (백그라운드)."""
     _run_in_background(_do_update_session_title, session_id, title)

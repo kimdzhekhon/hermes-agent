@@ -306,7 +306,14 @@ _apply_profile_override()
 from hermes_cli.config import get_hermes_home
 from hermes_cli.env_loader import load_hermes_dotenv
 
+# PaaS(Render 등)에서는 컨테이너 환경변수가 진실의 원천이어야 한다.
+# load_hermes_dotenv(override=True)가 .env로 PaaS 주입값을 비우지 않도록,
+# 로드 전 비어있지 않은 환경변수를 스냅샷하고 로드 후 복원한다.
+_paas_env_snapshot = {k: v for k, v in os.environ.items() if v}
 load_hermes_dotenv(project_env=PROJECT_ROOT / ".env")
+for _pk, _pv in _paas_env_snapshot.items():
+    if _pv and not os.environ.get(_pk):
+        os.environ[_pk] = _pv
 
 # Bridge security.redact_secrets from config.yaml → HERMES_REDACT_SECRETS env
 # var BEFORE hermes_logging imports agent.redact (which snapshots the flag at

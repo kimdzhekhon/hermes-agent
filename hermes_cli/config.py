@@ -4770,6 +4770,15 @@ def _load_config_impl(*, want_deepcopy: bool) -> Dict[str, Any]:
                 _warn_config_parse_failure(config_path, e)
 
         normalized = _normalize_root_model_keys(_normalize_max_turns_config(config))
+        # HERMES_MODEL 환경변수로 메인 응답 모델을 오버라이드 (Render/PaaS 친화).
+        # config.yaml을 직접 수정할 수 없는 컨테이너 배포에서 Supabase
+        # hermes_config 등에 HERMES_MODEL을 넣으면 model.default가 바뀐다.
+        # auxiliary(vision 등) 모델은 영향받지 않는다.
+        _env_model = os.environ.get("HERMES_MODEL", "").strip()
+        if _env_model:
+            if not isinstance(normalized.get("model"), dict):
+                normalized["model"] = {}
+            normalized["model"]["default"] = _env_model
         expanded = _expand_env_vars(normalized)
         _LAST_EXPANDED_CONFIG_BY_PATH[path_key] = copy.deepcopy(expanded)
         if cache_key is not None:
